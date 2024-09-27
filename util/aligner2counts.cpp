@@ -160,7 +160,7 @@ std::pair<float, float> get_seqid_alncov(std::pair<int, int> &alnpos, std::strin
     //  Sequence identity only considers aligned region (soft clip region is ignored)
     //  Alignment coverage is calculated w.r.t full read length
     assert(end >= 0); // assert that end does not accidentally overflows here
-    for (unsigned int i = start; i < end; i++) {
+    for (unsigned int i = start; i < (unsigned int) end; i++) {
         bool is_match;
         if (future_matches > 0) {
             future_matches--;
