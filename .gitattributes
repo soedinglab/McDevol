@@ -1,0 +1,5 @@
+mcdevol/genomeface_weights/* filter=lfs diff=lfs merge=lfs -text
+mcdevol/genomeface_weights/model9_eval.m.data-00000-of-00001 filter=lfs diff=lfs merge=lfs -text
+mcdevol/genomeface_weights/model9_eval.m.index filter=lfs diff=lfs merge=lfs -text
+mcdevol/genomeface_weights/general_t2eval.m.data-00000-of-00001 filter=lfs diff=lfs merge=lfs -text
+mcdevol/genomeface_weights/general_t2eval.m.index filter=lfs diff=lfs merge=lfs -text
