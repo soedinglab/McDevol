@@ -1,0 +1,25 @@
+[project]
+name = "mcdevol"
+version = "0.1.0"
+description = "A metagenome binning tool"
+authors = {name="Yazhini Arangasamy", email="yazhini@mpinat.mpg.de"}
+requires-python = "==3.9"
+dependencies = [
+  tensorflow-gpu=2.9.1
+  cudatoolkit=11.7
+  torch #pytorch-gpu
+  igraph
+  numpy
+  leidenalg
+  hnswlib
+  pandas
+  tqdm
+  biopython
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.hooks.custom]
+path="hatch_build.py"
