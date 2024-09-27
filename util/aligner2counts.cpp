@@ -198,8 +198,8 @@ std::pair<float, float> get_seqid_alncov(std::pair<int, int> &alnpos, std::strin
         exit(1);
     }
 
-    seq_id = (static_cast<float>(matches) * 100) / (matches+mismatches);
-    alignment_coverage = (static_cast<float>(alignment_length) * 100) / (qual_str.length() + start); // account for variable read length
+    seq_id = (static_cast<float>(matches) * 100.0) / (matches+mismatches);
+    alignment_coverage = (static_cast<float>(alignment_length) * 100.0) / (qual_str.length() + start); // account for variable read length
     // std::cout << matches << " matches " << mismatches << " mismatches " <<  seq_id << " " << alignment_coverage << " " << matches+mismatches << " in alnstats \n";
     return std::make_pair(seq_id, alignment_coverage);
 }
