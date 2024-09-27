@@ -430,7 +430,7 @@ void process_alignment_line(
     AlnMapids& alnmapids,
     bool& strobealign) {
     if (contigs_map.size() == 0) {
-        std::cerr << "Input sam/bam file doesn't has header. Please provide input file with header \n";
+        std::cerr << "Input sam file doesn't has header. Please provide input file with header \n";
         exit(1);
     }
     std::string currentread_id, contig_id, cigar_str, qual_str, md_str, field;
