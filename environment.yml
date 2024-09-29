@@ -1,0 +1,15 @@
+name: mcdevol_env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  - tensorflow-gpu=2.8
+  - cudatoolkit
+  - pytorch-gpu
+  - igraph
+  - numpy
+  - leidenalg
+  - hnswlib
+  - pandas
+  - tqdm
+  - biopython
