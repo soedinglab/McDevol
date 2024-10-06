@@ -26,7 +26,7 @@ from torch.cuda.amp import autocast, GradScaler
 # deepseed using fabric didn't speed up with single device
 class WarmUpLR(_LRScheduler):
     def __init__(self, optimizer, total_iters, last_epoch=-1):
-        self.total_iters = total_iters
+        self.total_iters = max(1, total_iters)
         super(WarmUpLR, self).__init__(optimizer, last_epoch)
 
     def get_lr(self):
@@ -181,6 +181,10 @@ class BYOLmodel(nn.Module):
         self.dropout = 0.1
         projection_size = 256
         projection_hidden_size = 4096
+        self.batch_size = 4096
+ 
+        if int(self.ncontigs * 0.8) < self.batch_size:
+            self.batch_size = int(self.ncontigs * 0.2)
 
         self.read_counts = torch.from_numpy(normalize_counts(abundance_matrix))
         self.rawread_counts = torch.from_numpy(abundance_matrix)
@@ -623,10 +627,10 @@ class BYOLmodel(nn.Module):
         batchsteps_set = sorted(set(batchsteps))
 
         dataloader_train = DataLoader(dataset=self.dataset_train, \
-            batch_size=4096, drop_last=True, shuffle=True, \
+            batch_size=self.batch_size, drop_last=True, shuffle=True, \
             num_workers=self.num_workers, pin_memory=self.cuda)
         dataloader_val = DataLoader(dataset=self.dataset_val, \
-            batch_size=4096, drop_last=True, shuffle=True, \
+            batch_size=self.batch_size, drop_last=True, shuffle=True, \
             num_workers=self.num_workers, pin_memory=self.cuda)
 
         # # split read mapping dataloader
@@ -660,7 +664,7 @@ class BYOLmodel(nn.Module):
         """ test model """
         self.eval()
 
-        dataloader_test = DataLoader(dataset=self.dataset_test, batch_size=4096, \
+        dataloader_test = DataLoader(dataset=self.dataset_test, batch_size=self.batch_size, \
             drop_last=True, shuffle=True, num_workers=self.num_workers, pin_memory=self.cuda)
         loss_test = []
         latent_space_test = []
@@ -674,7 +678,7 @@ class BYOLmodel(nn.Module):
     def getlatent(self, name:str=""):
         """ get latent space after training """
 
-        dataloader = DataLoader(dataset=self.dataset, batch_size=4096,
+        dataloader = DataLoader(dataset=self.dataset, batch_size=self.batch_size,
             shuffle=False, drop_last=False, \
             num_workers=self.num_workers, pin_memory=self.cuda)
 
@@ -713,7 +717,7 @@ def run(abundance_matrix, outdir, contig_length, contig_names, multi_split, ncpu
     logger.info(f'contig length shape: {contig_length.size}')
     logger.info(f'contig names shape: {contig_names.size}')
     # filter contigs with low abundances
-    print(np.min(abundance_matrix.sum(axis=1)), np.max(abundance_matrix.sum(axis=1)), 'min max of total abundance')
+
     nonzeroindices = np.nonzero(abundance_matrix.sum(axis=1)>1.5)[0]
     print(len(np.nonzero(abundance_matrix.sum(axis=1)==0.0)[0]), 'contigs with zero total counts')
     if len(nonzeroindices) < contig_length.size:
@@ -721,7 +725,7 @@ def run(abundance_matrix, outdir, contig_length, contig_names, multi_split, ncpu
     abundance_matrix = abundance_matrix[nonzeroindices]
     contig_length = contig_length[nonzeroindices]
     contig_names = contig_names[nonzeroindices]
-    print(np.min(abundance_matrix.sum(axis=1)), np.max(abundance_matrix.sum(axis=1)), 'min max of total abundance')
+
     logger.info('after filtering contigs with total abundance being low <1.5')
     logger.info(f'abundance matrix shape: {abundance_matrix.shape}')
     logger.info(f'contig length shape: {contig_length.size}')

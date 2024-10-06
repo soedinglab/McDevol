@@ -63,7 +63,6 @@ def run_leiden(latent_norm, ncpus, resolution_param = 1.0, max_edges = 200):
     #     max_edges = 200
     if num_elements < 200:
         max_edges = int(num_elements/2)
-    print(max_edges, 'max edges used for leiden')
     ann_neighbor_indices, ann_distances = p.knn_query(latent_norm, max_edges + 1, num_threads=8)
 
     partgraph_ratio = 50
@@ -227,5 +226,5 @@ if __name__ == "__main__":
     max_edges = args.maxedges
     outdir = os.path.abspath(args.outdir) +"/"
     multi_split = args.multi_split
-    print(max_edges, 'max edges used')
+
     cluster(latent, contig_length, contig_names, fasta_file, outdir, ncpus, logger, multi_split, max_edges)
