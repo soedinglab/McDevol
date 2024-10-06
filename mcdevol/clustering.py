@@ -170,7 +170,8 @@ def cluster(
         pd_data["index"] = pd_data.index
         sampleindices = pd_data.groupby("sample_id")["index"].apply(list)
         bindirectory = os.path.join(outdir,'split_cluster_bins/')
-
+        if not os.path.exists(bindirectory):
+            os.makedirs(bindirectory, exist_ok=True)
         for i, inds in enumerate(sampleindices):
             latent_sample = latent_norm[inds]
             contig_length_sample = contig_length[inds]
@@ -187,6 +188,7 @@ def cluster(
             file_name = f'S{i}_bins_filtered'
             bins_selected.to_csv(os.path.join(outdir, file_name), header=None, sep=',', index=False)
             samplebin_directory = os.path.join(bindirectory,"S"+str(i))
+        
             # fetch sequences from contig fasta file
             subprocess.run(f"{util_path}/get_sequence_bybin {outdir} {file_name} {fasta_file} bin {samplebin_directory}", shell=True)
         logger.info(f'Splitting clusters by sample: {len(cluster_selected.index)}')
