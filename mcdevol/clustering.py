@@ -7,12 +7,13 @@ import numpy as np
 import time
 import hnswlib
 import logging
+import argparse
 import subprocess
 
 util_path = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../util/'))
 sys.path.insert(0, util_path)
 
-def fit_hnsw_index(features, ncpus, ef: int = 100, M: int = 16,
+def fit_hnsw_index(features, ncpus, ef: int = 200, M: int = 16,
                 space: str = 'cosine', save_index_file: bool = False) -> hnswlib.Index:
     """
     Fit an HNSW index with the given features using the HNSWlib library; Convenience function to create HNSW graph.
@@ -52,14 +53,14 @@ def fit_hnsw_index(features, ncpus, ef: int = 100, M: int = 16,
 
     return p
 
-def run_leiden(latent_norm, ncpus, resolution_param = 1.0):
+def run_leiden(latent_norm, ncpus, resolution_param = 1.0, max_edges = 200):
 
     num_elements = len(latent_norm)
 
     p = fit_hnsw_index(latent_norm, ncpus)
 
-    if num_elements > 100:
-        max_edges = 100
+    if num_elements > 200:
+        max_edges = 200
     else:
         max_edges = int(num_elements/2)
     
@@ -103,6 +104,7 @@ def cluster(
     ncpus: int,
     logger: logging.Logger,
     multi_split: bool = False,
+    max_edges = 200,
     seperator: str = 'C'
     ) -> None:
     """
@@ -122,10 +124,11 @@ def cluster(
     Returns:
         None
     """
+
     start_time = time.time()
     latent_norm = latent / np.linalg.norm(latent, axis=1, keepdims=True)
     
-    community_assignments = run_leiden(latent_norm, ncpus)
+    community_assignments = run_leiden(latent_norm, ncpus, max_edges=max_edges)
 
     cluster_ids = pd.DataFrame({
         "contig_name": contig_names, 
@@ -138,7 +141,7 @@ def cluster(
     clustersize = cluster_ids.groupby("cluster_id")["contig_length"].sum().reset_index(drop=True)
     clusterids_selected = clustersize[clustersize>=200000].index
     cluster_selected = cluster_ids[cluster_ids['cluster_id'].isin(clusterids_selected)][["contig_name","cluster_id"]]
-    logger.info(f'Filtered bins by 200kb size: {len(cluster_selected)}')
+    logger.info(f'Filtered bins by 200kb size: {len(cluster_selected.index)}')
     file_name = 'bins_filtered.tsv'
     cluster_selected.to_csv(os.path.join(outdir, file_name), header=None, sep=',', index=False)
 
@@ -172,7 +175,7 @@ def cluster(
             latent_sample = latent_norm[inds]
             contig_length_sample = contig_length[inds]
             names_subset = contig_names[inds]
-            community_assignments = run_leiden(latent_sample, 12)
+            community_assignments = run_leiden(latent_sample, 12, max_edges=max_edges)
             bin_ids = pd.DataFrame({
                 "contig_name": names_subset,
                 "cluster_id": community_assignments,
@@ -183,11 +186,10 @@ def cluster(
             bins_selected = bin_ids[bin_ids["cluster_id"].isin(binids_selected)][["contig_name","cluster_id"]]
             file_name = f'S{i}_bins_filtered'
             bins_selected.to_csv(os.path.join(outdir, file_name), header=None, sep=',', index=False)
-
+            samplebin_directory = os.path.join(bindirectory,"S"+str(i))
             # fetch sequences from contig fasta file
-            subprocess.run(f"{util_path}/get_sequence_bybin {outdir} {file_name} {fasta_file} bin {bindirectory}", shell=True)
-        logger.info(f'Splitting clusters by sample: {len(cluster_selected)}')
-
+            subprocess.run(f"{util_path}/get_sequence_bybin {outdir} {file_name} {fasta_file} bin {samplebin_directory}", shell=True)
+        logger.info(f'Splitting clusters by sample: {len(cluster_selected.index)}')
 
     else:
         bindirectory = os.path.join(outdir+'bins/')
@@ -196,23 +198,32 @@ def cluster(
 
     logger.info(f'Clustering is completed in {time.time()-start_time:.2f} seconds')
 
-# if __name__ == "__main__":
-#     path = '/home/yazhini/work/cami2_datasets/marine/data_1kcontigs/MA_assembly/multi_split_assembly/byol_1/'
-#     outpath = '/home/yazhini/work/cami2_datasets/marine/data_1kcontigs/MA_assembly/multi_split_assembly/byol_1/'
+if __name__ == "__main__":
+    """ Leiden community detection algorithm for clustering """
+    parser = argparse.ArgumentParser(prog='clustering.py', description="Leiden community detection algorithm for clustering contigs using the latent space\n")
+    parser.add_argument("-a", "--latent", type=str, help="embedding latent space", required=True)
+    parser.add_argument("-f", "--fasta", type=str, help="contigs sequence in fasta (or zip)", required=True)
+    parser.add_argument("-l", "--length", type=str, help="length of contigs", required=True)
+    parser.add_argument("-o", "--outdir", type=str, help="output directory", required=True)
+    parser.add_argument("-n", "--names", type=str, help="names of contigs", required=True)
+    parser.add_argument("-m", "--maxedges", type=int, help="number of max edges", default=200)
+    parser.add_argument("-c", "--ncpus", type=int, help="Number of cores to use", default=os.cpu_count())
+    parser.add_argument("--multi_split", help="split clusters based on sample id, separator (default='C')", action="store_true")
     
-#     logging.basicConfig(format='%(asctime)s - %(message)s', \
-#     level=logging.INFO, datefmt='%d-%b-%y %H:%M:%S',
-#     filename= outpath + '/clustering.log', filemode='w')
-#     logger = logging.getLogger()
-#     latent = np.load(path + 'latent.npy', allow_pickle=True) # 'byoltrlc_both_augsplit
+    args = parser.parse_args()
 
-#     contig_length = np.load(path + '../contigs_1klength.npz', allow_pickle=True)['arr_0']
-#     contig_names = np.load(path + '../contigs_1knames.npz', allow_pickle=True)['arr_0']
-#     cluster(latent, contig_length, contig_names, outpath, multi_split=True)
-    # scmg_dict = pd.read_csv(path + '../marker_hits', header=None,sep='\t')
+    logging.basicConfig(format='%(asctime)s - %(message)s', \
+    level = logging.INFO, datefmt='%d-%b-%y %H:%M:%S',
+    filename = os.path.join(args.outdir, 'clustering.log'), filemode='w')
+    logger = logging.getLogger()
 
-    # scmg_dict = dict(scmg_dict.groupby(1)[0].apply(list))
+    latent = np.load(args.latent, allow_pickle=True)
+    contig_length = np.load(args.length, allow_pickle=True)
+    contig_names = np.load(args.names, allow_pickle=True)
+    ncpus = args.ncpus
+    fasta_file = args.fasta
+    max_edges = args.maxedges
+    outdir = os.path.abspath(args.outdir) +"/"
+    multi_split = args.multi_split
 
-    # max_key = max(scmg_dict, key=lambda k: len(scmg_dict[k]))
-    # scmg_freq ={k:len(scmg_dict[k]) for k in scmg_dict.keys()}
-    # scmg_freq = sorted(scmg_freq.items(), key=lambda item: item[1])
+    cluster(latent, contig_length, contig_names, fasta_file, outdir, ncpus, logger, multi_split, max_edges)
