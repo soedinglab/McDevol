@@ -13,7 +13,7 @@ import subprocess
 util_path = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../util/'))
 sys.path.insert(0, util_path)
 
-def fit_hnsw_index(features, ncpus, ef: int = 200, M: int = 16,
+def fit_hnsw_index(features, ncpus, ef: int = 100, M: int = 16,
                 space: str = 'cosine', save_index_file: bool = False) -> hnswlib.Index:
     """
     Fit an HNSW index with the given features using the HNSWlib library; Convenience function to create HNSW graph.
@@ -53,15 +53,15 @@ def fit_hnsw_index(features, ncpus, ef: int = 200, M: int = 16,
 
     return p
 
-def run_leiden(latent_norm, ncpus, resolution_param = 1.0, max_edges = 200):
+def run_leiden(latent_norm, ncpus, resolution_param = 1.0, max_edges = 100):
 
     num_elements = len(latent_norm)
 
     p = fit_hnsw_index(latent_norm, ncpus)
 
-    # if num_elements > 200:
-    #     max_edges = 200
-    if num_elements < 200:
+    # if num_elements > 100:
+    #     max_edges = 100
+    if num_elements < 100:
         max_edges = int(num_elements/2)
     ann_neighbor_indices, ann_distances = p.knn_query(latent_norm, max_edges + 1, num_threads=8)
 
@@ -103,7 +103,7 @@ def cluster(
     ncpus: int,
     logger: logging.Logger,
     multi_split: bool = False,
-    max_edges = 200,
+    max_edges = 100,
     seperator: str = 'C'
     ) -> None:
     """
@@ -207,7 +207,7 @@ if __name__ == "__main__":
     parser.add_argument("-l", "--length", type=str, help="length of contigs", required=True)
     parser.add_argument("-o", "--outdir", type=str, help="output directory", required=True)
     parser.add_argument("-n", "--names", type=str, help="names of contigs", required=True)
-    parser.add_argument("-m", "--maxedges", type=int, help="number of max edges", default=200)
+    parser.add_argument("-m", "--maxedges", type=int, help="number of max edges", default=100)
     parser.add_argument("-c", "--ncpus", type=int, help="Number of cores to use", default=os.cpu_count())
     parser.add_argument("--multi_split", help="split clusters based on sample id, separator (default='C')", action="store_true")
     
