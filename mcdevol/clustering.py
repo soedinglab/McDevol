@@ -14,7 +14,7 @@ util_path = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file
 sys.path.insert(0, util_path)
 
 def fit_hnsw_index(features, ncpus, ef: int = 100, M: int = 16,
-                space: str = 'cosine', save_index_file: bool = False) -> hnswlib.Index:
+                space: str = 'cosine') -> hnswlib.Index:
     """
     Fit an HNSW index with the given features using the HNSWlib library; Convenience function to create HNSW graph.
 
@@ -33,23 +33,11 @@ def fit_hnsw_index(features, ncpus, ef: int = 100, M: int = 16,
     labels_index = np.arange(num_elements)
     EMBEDDING_SIZE = len(features[0])
 
-    # Declaring index
-    # possible space options are l2, cosine or ip
     p = hnswlib.Index(space=space, dim=EMBEDDING_SIZE)
-
-    # Initing index - the maximum number of elements should be known
     p.init_index(max_elements=num_elements, ef_construction=ef, M=M)
-
-    # Element insertion
     p.add_items(features, labels_index, num_threads=ncpus)
-
-    # Controlling the recall by setting ef
     # ef should always be > k
     p.set_ef(ef)
-
-    # If you want to save the graph to a file
-    if save_index_file:
-        p.save_index(save_index_file)
 
     return p
 
@@ -85,7 +73,7 @@ def run_leiden(latent_norm, ncpus, resolution_param = 1.0, max_edges = 100):
     weights = weights[index]
     edgelist = list(zip(sources, targets))
     g = ig.Graph(num_elements, edgelist)
-
+    print(resolution_param, 'resolution parameter')
     rbconf = leidenalg.RBConfigurationVertexPartition(g, weights=weights,resolution_parameter=resolution_param)
     optimiser = leidenalg.Optimiser()
     optimiser.optimise_partition(rbconf, n_iterations=-1)
@@ -159,7 +147,6 @@ def cluster(
         file_name = 'cluster_split_allsamplewisebins'
         pd.DataFrame(sub_clusters).to_csv(os.path.join(outdir, file_name), header=None, sep=',', index=False)
 
-        # save bins
         bindirectory = os.path.join(outdir,'cluster_split_bins/')
         # fetch sequences from contig fasta file
         subprocess.run(f"{util_path}/get_sequence_bybin {outdir} {file_name} {fasta_file} bin {bindirectory}", shell=True)
@@ -171,11 +158,14 @@ def cluster(
         bindirectory = os.path.join(outdir,'split_cluster_bins/')
         if not os.path.exists(bindirectory):
             os.makedirs(bindirectory, exist_ok=True)
-        for i, inds in enumerate(sampleindices):
+        for inds in sampleindices:
+            # sample order can differ in pandas grouping and hence explicitly get sample id from contig name
+            sample_id = contig_names[inds[0]].split('_')[0].split('C')[0].replace('S','')
+            print(sample_id, 'sample_id')
             latent_sample = latent_norm[inds]
             contig_length_sample = contig_length[inds]
             names_subset = contig_names[inds]
-            community_assignments = run_leiden(latent_sample, 12, max_edges=max_edges)
+            community_assignments = run_leiden(latent_sample, 12, resolution_param=0.1, max_edges=max_edges)
             bin_ids = pd.DataFrame({
                 "contig_name": names_subset,
                 "cluster_id": community_assignments,
@@ -184,17 +174,15 @@ def cluster(
             binsize = pd.DataFrame(bin_ids.groupby("cluster_id")["contig_length"].sum().reset_index(drop=True))
             binids_selected = binsize[binsize>=200000].index
             bins_selected = bin_ids[bin_ids["cluster_id"].isin(binids_selected)][["contig_name","cluster_id"]]
-            file_name = f'S{i}_bins_filtered'
+            file_name = f'S{sample_id}_bins_filtered'
             bins_selected.to_csv(os.path.join(outdir, file_name), header=None, sep=',', index=False)
-            samplebin_directory = os.path.join(bindirectory,"S"+str(i))
+            samplebin_directory = os.path.join(bindirectory,"S"+str(sample_id))
         
-            # fetch sequences from contig fasta file
             subprocess.run(f"{util_path}/get_sequence_bybin {outdir} {file_name} {fasta_file} bin {samplebin_directory}", shell=True)
         logger.info(f'Splitting clusters by sample: {len(cluster_selected.index)}')
 
     else:
         bindirectory = os.path.join(outdir+'bins/')
-        # fetch sequences from contig fasta file
         subprocess.run(f"{util_path}/get_sequence_bybin {outdir} {file_name} {fasta_file} bin {bindirectory}", shell=True)
 
     logger.info(f'Clustering is completed in {time.time()-start_time:.2f} seconds')
