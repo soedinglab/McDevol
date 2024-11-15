@@ -13,6 +13,7 @@
 #include <filesystem>
 #include <unordered_map>
 #include <unordered_set>
+#include <cassert>
 
 const unsigned int FLAG_0 = 0;      // 0 primary alignment
 const unsigned int FLAG_1 = 1;      // 0x1 template having multiple segments in sequencing
@@ -158,7 +159,8 @@ std::pair<float, float> get_seqid_alncov(std::pair<int, int> &alnpos, std::strin
 
     //  Sequence identity only considers aligned region (soft clip region is ignored)
     //  Alignment coverage is calculated w.r.t full read length
-    for (unsigned int i = start; i < end; i++) {
+    assert(end >= 0); // assert that end does not accidentally overflows here
+    for (unsigned int i = start; i < (unsigned int) end; i++) {
         bool is_match;
         if (future_matches > 0) {
             future_matches--;
@@ -196,8 +198,8 @@ std::pair<float, float> get_seqid_alncov(std::pair<int, int> &alnpos, std::strin
         exit(1);
     }
 
-    seq_id = (static_cast<float>(matches) * 100) / (matches+mismatches);
-    alignment_coverage = (static_cast<float>(alignment_length) * 100) / (qual_str.length() + start); // account for variable read length
+    seq_id = (static_cast<float>(matches) * 100.0) / (matches+mismatches);
+    alignment_coverage = (static_cast<float>(alignment_length) * 100.0) / (qual_str.length() + start); // account for variable read length
     // std::cout << matches << " matches " << mismatches << " mismatches " <<  seq_id << " " << alignment_coverage << " " << matches+mismatches << " in alnstats \n";
     return std::make_pair(seq_id, alignment_coverage);
 }
@@ -430,7 +432,7 @@ void process_alignment_line(
     AlnMapids& alnmapids,
     bool& strobealign) {
     if (contigs_map.size() == 0) {
-        std::cerr << "Input sam/bam file doesn't has header. Please provide input file with header \n";
+        std::cerr << "Input sam file doesn't has header. Please provide input file with header \n";
         exit(1);
     }
     std::string currentread_id, contig_id, cigar_str, qual_str, md_str, field;
