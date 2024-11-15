@@ -11,7 +11,7 @@
 
 namespace fs = std::filesystem;
 
-bool condition_header(std::ifstream &fasta, std::string &line) {
+bool condition_header(std::string &line) {
     if (line[0] == '>') {
         return true;
     }
@@ -32,7 +32,7 @@ bool line_check(std::ifstream &fasta, std::string &line) {
 
 void get_complete_sequence(std::ifstream &fasta, std::string &line, std::string &sequence) {
     fasta >> line;
-    while (!condition_header(fasta, line) && !fasta.eof()) {
+    while (!condition_header(line) && !fasta.eof()) {
         if (line_check(fasta, line)) {
             sequence.append(line);
             fasta >> line;
@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
         std::string outdir = argv[5];
 
         std::fstream binassignment;
-        binassignment.open(tmp_dir + bin_ids);
+        binassignment.open(tmp_dir + '/' + bin_ids);
 
         if (!binassignment.is_open()) {
             std::cerr << "Error: Unable to open bin assignment file!" << "\n";
@@ -114,7 +114,7 @@ int main(int argc, char *argv[]) {
         }
 
         fastaFile >> line;
-        while (condition_header(fastaFile, line)) {
+        while (condition_header(line)) {
             sequence = "";
             auto range = bins_ids.equal_range(line.substr(1,-1));
             if (range.first != range.second) {
@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
             }
             else {
                 fastaFile >> line;
-                while (!condition_header(fastaFile, line) && !fastaFile.eof()) {
+                while (!condition_header(line) && !fastaFile.eof()) {
                     fastaFile >> line;
                 }
             }
