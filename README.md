@@ -1,7 +1,7 @@
 # McDevol
-A metagenome binning tool based on semi-contrastive learning method. It integrates k-mer sequence embedding from GenomeFace and abundance data augmentation using binomial sampling for training.
+A metagenome binning tool based on semi-contrastive learning method using the framework of BYOL (Bootstrap Your Own Latent) model. It only requires positive augmentated pairs for contrastive learning. As input, it integrates k-mer sequence embedding from GenomeFace and sampled contig coverage profile using binomial sampling of augmented pairs for training.
 
-![McDevol_BYOL_model](https://github.com/user-attachments/assets/8d2c9719-7208-447f-a221-9ca53a549572)
+[Mcdevol_byol_model.pdf](https://github.com/user-attachments/files/17779212/Mcdevol_byol_model.pdf)
 
 # Installation
     CONDA_OVERRIDE_GLIBC=2.17 CONDA_OVERRIDE_CUDA=10.2 conda env create --file=environment.yml
