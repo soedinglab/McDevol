@@ -4,15 +4,15 @@ A metagenome binning tool based on semi-contrastive learning method using the fr
 ![Mcdevol_byol_model](https://github.com/user-attachments/assets/914fa48e-7780-4f86-9747-4df132635045)
 
 # Installation
-    _CONDA_OVERRIDE_GLIBC=2.17 CONDA_OVERRIDE_CUDA=10.2 conda env create --file=environment.yml (only on cluster node)_
     conda env create -n mcdevol_env --file=environment.yml
     conda activate mcdevol_env
     export PATH=${PATH}/$(pwd)/mcdevol
     python mcdevol.py --help
 
-Require glibc2.25. At the moment, McDevol scripts are tested only on Linux system.
+Require glibc2.25. At the moment, McDevol scripts are tested only on Linux system. On cluster node, try creating conda environment using `CONDA_OVERRIDE_GLIBC=2.17 CONDA_OVERRIDE_CUDA=10.2 conda env create --file=environment.yml` if the default command doesn't work.
 
 # Usage
+```
 usage: mcdevol.py [-h] (-a ABUNDANCE | -i INPUTDIR) -c CONTIGS [-l MINLENGTH] [-o OUTDIR] [-n NCORES] [--abundformat ABUNDFORMAT] [-v] [-f NFRAGMENTS] [--multi_split]                      
                                                                                                                                                                                          
 McDevol: An accurate metagenome binning of contigs based on decovolution of abundance and k-mer embedding                                                                                
@@ -38,11 +38,13 @@ optional arguments:
   -f NFRAGMENTS, --nfragments NFRAGMENTS
                         number of augumented fragments to generate
   --multi_split         split clusters based on sample id, separator (default='C')
+```
 
 # Example
     python mcdevol.py -i <samfilesdir> -c <contigseq.fasta> -o <outputdir> --abundformat metabat -n 24
 
-`-i` and `-a` are mutually exclusive
+`-i` and `-a` are mutually exclusive input.
 
 For multi-sample binning run
+
     python mcdevol.py -i <samfilesdir> -c <contigseq.fasta> -o <outputdir> --abundformat metabat -n 24 --multi-split
