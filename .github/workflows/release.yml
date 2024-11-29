@@ -25,10 +25,12 @@ jobs:
         conda env create --file environment.yml --name mcdevol_env
     - name: Activate Environment
       run: |
+        conda init
         source ~/.bashrc  # Ensure the shell is updated with conda initialization
         conda activate mcdevol_env
     - name: Verify CUDA Installation
       run: |
+        conda init
         conda activate mcdevol_env
         nvcc --version
         nvidia-smi
