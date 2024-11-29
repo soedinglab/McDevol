@@ -42,8 +42,9 @@ jobs:
         source $HOME/miniconda/bin/activate
         conda init
         conda activate mcdevol_env
-        nvcc --version
-        nvidia-smi
+        python mcdevol/mcdevol.py -h
+        # nvcc --version
+        # nvidia-smi
     # - name: Lint with flake8
     #   run: |
     #     source $HOME/miniconda/bin/activate mcdevol_env
