@@ -22,7 +22,6 @@ jobs:
         CONDA_OVERRIDE_CUDA: "11.0"
       run: |
         conda env create --file environment.yml --name mcdevol_env
-        conda init
         conda activate mcdevol_env
     - name: Verify CUDA Installation
       run: |
@@ -30,7 +29,7 @@ jobs:
         nvidia-smi
     - name: Lint with flake8
       run: |
-        conda activate mcdevol_env
+        source activate mcdevol_env
         conda install flake8
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
