@@ -18,6 +18,8 @@ jobs:
       run: |
         # $CONDA is an environment variable pointing to the root of the miniconda directory
         echo $CONDA/bin >> $GITHUB_PATH
+        sudo apt-get update
+        sudo apt-get install -y nvidia-cuda-toolkit-11-2
     - name: Install dependencies
       run: |
         conda env update --file environment.yml --name base
