@@ -18,11 +18,21 @@ jobs:
       run: |
         # $CONDA is an environment variable pointing to the root of the miniconda directory
         echo $CONDA/bin >> $GITHUB_PATH
+    - name: Install NVIDIA CUDA Toolkit
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y wget gnupg
+        wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.0-1_all.deb
+        sudo dpkg -i cuda-keyring_1.0-1_all.deb
         sudo apt-get update
         sudo apt-get install -y cuda-toolkit-11-2
     - name: Install dependencies
       run: |
         conda env update --file environment.yml --name base
+    - name: Verify CUDA Installation
+      run: |
+        nvcc --version
+        nvidia-smi
     - name: Lint with flake8
       run: |
         conda install flake8
