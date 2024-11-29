@@ -22,6 +22,7 @@ jobs:
         CONDA_OVERRIDE_CUDA: "11.0"
       run: |
         conda env create --file environment.yml --name mcdevol_env
+        conda init
         conda activate mcdevol_env
     - name: Verify CUDA Installation
       run: |
