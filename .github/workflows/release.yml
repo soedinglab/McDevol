@@ -18,6 +18,10 @@ jobs:
         source $HOME/miniconda/bin/activate
         conda init
         source ~/.bashrc
+    - name: Install NVIDIA CUDA Toolkit
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cuda-toolkit-11-0  # Install CUDA 11.0
     - name: Create Environment
       env:
         CONDA_OVERRIDE_CUDA: "11.0"
