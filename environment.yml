@@ -7,10 +7,12 @@ channels:
   - defaults
 dependencies:
   - python=3.9
+  - tensorflow=2.8.0
+  - tensorflow-base=2.8.0
   - tensorflow-gpu=2.8.0
   - cudatoolkit=11.0
   - cudnn=8.9
-  - pytorch-gpu
+  - pytorch-gpu=1.10
   - igraph
   - numpy
   - leidenalg
