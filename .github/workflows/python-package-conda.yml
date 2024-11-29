@@ -16,14 +16,14 @@ jobs:
         python-version: '3.9'
         auto-update-conda: true
         channels: conda-forge,defaults,bioconda,nvidia,ursky
-        use-mamba: true  # Faster dependency solver
+        use-mamba: false  # Faster dependency solver
     - name: Add conda to system path
       run: |
         # $CONDA is an environment variable pointing to the root of the miniconda directory
         echo $CONDA/bin >> $GITHUB_PATH
-    - name: Install NVIDIA CUDA Toolkit
-      run: |
         sudo apt-get update
+    # - name: Install NVIDIA CUDA Toolkit
+    #   run: |
         # sudo apt-get install -y wget gnupg
         # wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.0-1_all.deb
         # sudo dpkg -i cuda-keyring_1.0-1_all.deb
