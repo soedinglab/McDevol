@@ -8,8 +8,8 @@ channels:
 dependencies:
   - python=3.9
   - tensorflow-gpu=2.8.0
-  - cudatoolkit=11.2
-  - cudnn=8.1
+  - cudatoolkit=11.0
+  - cudnn=8.9
   - pytorch-gpu
   - igraph
   - numpy
