@@ -1,0 +1,34 @@
+name: McDevol_GPU
+
+on: [push]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+    - name: Install CUDA Toolkit
+      uses: Jimver/cuda-toolkit@v0.2.11
+      id: cuda-toolkit
+      with:
+        cuda: '11.2.2'
+    - name: Create and activate conda environment
+      run: |
+        wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+        bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/miniconda
+        echo "$HOME/miniconda/bin" >> $GITHUB_PATH
+        source $HOME/miniconda/bin/activate
+        conda env create --file environment.yml --name mcdevol_env
+        conda activate mcdevol_env
+    - name: Install TensorFlow
+      run: |
+        pip install tensorflow-gpu==2.8.0
+    - name: Verify CUDA and TensorFlow
+      run: |
+        conda activate mcdevol_env
+        python mcdevol/mcdevol.py -h
+        python -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
