@@ -16,8 +16,11 @@ jobs:
       id: cuda-toolkit
       with:
         cuda: '11.2.2'
+        method: 'network'
     - name: Create and activate conda environment
       run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential
         wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
         bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/miniconda
         echo "$HOME/miniconda/bin" >> $GITHUB_PATH
@@ -31,4 +34,5 @@ jobs:
       run: |
         conda activate mcdevol_env
         python mcdevol/mcdevol.py -h
+        python -c "import torch; print(torch.cuda.is_available()); print(torch.cuda.device_count());)"
         python -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
