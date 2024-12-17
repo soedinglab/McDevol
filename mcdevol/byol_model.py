@@ -417,6 +417,8 @@ class BYOLmodel(nn.Module):
                 self.update_moving_average()
 
             epoch_loss += loss.detach().data.item()
+        if epoch == 100 or epoch == 200 or epoch == 300:
+            np.save(self.outdir+f'latent_epoch{epoch}',np.vstack(latent_space))
         if training:
             self.scheduler.step() # type: ignore
         epoch_losses.extend([epoch_loss])
@@ -740,6 +742,7 @@ def run(abundance_matrix, outdir, contig_length, contig_names, multi_split, ncpu
         kmerdata_tmp = np.load(arg_name, allow_pickle=True).astype(np.float32)
         kmer_data[keyname+name] = kmerdata_tmp[nonzeroindices]
 
+    # np.save(os.path.join(outdir, 'abundance_matrix.npy'), abundance_matrix)
     byol = BYOLmodel(abundance_matrix, kmer_data, contig_length, outdir, logger, multi_split, ncpus)
     byol.trainmodel()
     latent = byol.getlatent()
