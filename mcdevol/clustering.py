@@ -92,7 +92,7 @@ def cluster(
     logger: logging.Logger,
     multi_split: bool = False,
     max_edges = 100,
-    seperator: str = 'C'
+    separator: str = 'C'
     ) -> None:
     """
     Clusters contigs based on latent representations and optionally splits the clusters if sample-wise contigs are provided.
@@ -138,7 +138,7 @@ def cluster(
         sub_clusters = []
         for cluster in clusters:
             pd_data = pd.DataFrame(cluster, columns=["contig_name"])
-            pd_data["sample_id"] = pd_data["contig_name"].str.split(seperator).str[0]
+            pd_data["sample_id"] = pd_data["contig_name"].str.split(separator).str[0]
             split_data = pd_data.groupby("sample_id")["contig_name"].apply(list)
             for sub_cluster in split_data:
                 sub_cluster = [(c, cluster_counter) for c in sub_cluster]
