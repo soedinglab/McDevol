@@ -73,7 +73,6 @@ def run_leiden(latent_norm, ncpus, resolution_param = 1.0, max_edges = 100):
     weights = weights[index]
     edgelist = list(zip(sources, targets))
     g = ig.Graph(num_elements, edgelist)
-    print(resolution_param, 'resolution parameter')
     rbconf = leidenalg.RBConfigurationVertexPartition(g, weights=weights,resolution_parameter=resolution_param)
     optimiser = leidenalg.Optimiser()
     optimiser.optimise_partition(rbconf, n_iterations=-1)
@@ -116,7 +115,6 @@ def cluster(
     latent_norm = latent / np.linalg.norm(latent, axis=1, keepdims=True)
     
     community_assignments = run_leiden(latent_norm, ncpus, max_edges=max_edges)
-
     cluster_ids = pd.DataFrame({
         "contig_name": contig_names, 
         "cluster_id": community_assignments
@@ -131,7 +129,6 @@ def cluster(
     logger.info(f'Filtered bins by 200kb size: {len(cluster_selected.index)}')
     file_name = 'bins_filtered.tsv'
     cluster_selected.to_csv(os.path.join(outdir, file_name), header=None, sep=',', index=False)
-
     if multi_split:
         clusters = cluster_selected.groupby("cluster_id")["contig_name"].apply(list).tolist()
         cluster_counter = 0
@@ -160,8 +157,7 @@ def cluster(
             os.makedirs(bindirectory, exist_ok=True)
         for inds in sampleindices:
             # sample order can differ in pandas grouping and hence explicitly get sample id from contig name
-            sample_id = contig_names[inds[0]].split('_')[0].split('C')[0].replace('S','')
-            print(sample_id, 'sample_id')
+            sample_id = contig_names[inds[0]].split('C')[0] # .split('_')[0].
             latent_sample = latent_norm[inds]
             contig_length_sample = contig_length[inds]
             names_subset = contig_names[inds]
@@ -174,9 +170,9 @@ def cluster(
             binsize = pd.DataFrame(bin_ids.groupby("cluster_id")["contig_length"].sum().reset_index(drop=True))
             binids_selected = binsize[binsize>=200000].index
             bins_selected = bin_ids[bin_ids["cluster_id"].isin(binids_selected)][["contig_name","cluster_id"]]
-            file_name = f'S{sample_id}_bins_filtered'
+            file_name = f'{sample_id}_bins_filtered'
             bins_selected.to_csv(os.path.join(outdir, file_name), header=None, sep=',', index=False)
-            samplebin_directory = os.path.join(bindirectory,"S"+str(sample_id))
+            samplebin_directory = os.path.join(bindirectory, str(sample_id))
         
             subprocess.run(f"{util_path}/get_sequence_bybin {outdir} {file_name} {fasta_file} bin {samplebin_directory}", shell=True)
         logger.info(f'Splitting clusters by sample: {len(cluster_selected.index)}')

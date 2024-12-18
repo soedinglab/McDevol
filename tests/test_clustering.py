@@ -11,8 +11,12 @@ import numpy as np
 import pandas as pd # type: ignore
 import os
 import io
+import sys
 import tempfile
 import logging
+import shutil
+import igraph as ig
+from io import StringIO
 from unittest.mock import patch, MagicMock, call
 import clustering
 from clustering import cluster, run_leiden
@@ -22,7 +26,7 @@ class TestClusterFunction(unittest.TestCase):
         # 100 contigs, 32-dimensional latent space
         self.latent = np.random.rand(100, 32)
         self.contig_length = np.random.randint(1000, 10000, 100)
-        self.contig_names = np.array([f"contig_{i}" for i in range(100)])
+        self.contig_names = np.array([f"k141_{i}" for i in range(100)])
         self.fasta_file = "dummy.fasta"
         self.outdir = tempfile.mkdtemp()
         self.ncpus = 2
@@ -30,20 +34,11 @@ class TestClusterFunction(unittest.TestCase):
 
     @patch('clustering.run_leiden')
     @patch('subprocess.run')
-    # @patch('sys.stdout', new_callable=io.StringIO)
     def test_cluster(self, mock_subprocess_run, mock_run_leiden):
-        # Mock the Leiden clustering result
-        # mock_run_leiden.return_value = np.random.randint(0, 20, 100)
         num_elements = 100
         mock_edgelist = [(i, i + 1) for i in range(num_elements - 1)]  # Simple chain graph
-        mock_g = ig.Graph(num_elements, mock_edgelist)
         mock_run_leiden.return_value = (
-            np.random.randint(0, 20, 100),  # Mocked community_assignments
-            100,                            # Mocked num_elements
-            50,                             # Mocked max_edges
-            np.random.rand(100, 50),        # Mocked ann_distances
-            np.random.randint(0, 100, (100, 50)),  # Mocked ann_neighbor_indices
-            mock_g
+            np.random.randint(0, 20, 100)
         )
          
         cluster(self.latent, self.contig_length, self.contig_names, 
@@ -53,74 +48,57 @@ class TestClusterFunction(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(self.outdir, 'allbins.tsv')))
         self.assertTrue(os.path.exists(os.path.join(self.outdir, 'bins_filtered.tsv')))
 
-        # Check if subprocess was called
         mock_subprocess_run.assert_called_once()
 
     def tearDown(self):
-        # Clean up temporary directory
         for file in os.listdir(self.outdir):
             os.remove(os.path.join(self.outdir, file))
         os.rmdir(self.outdir)
 
-class TestClusterFunction(unittest.TestCase):
+def dynamic_run_leiden(latent_subset, ncpus, resolution_param=1.0, max_edges=100):
+    num_elements = latent_subset.shape[0]
+    community_assignments = np.random.randint(0, 20, size=num_elements)  # Simulate cluster IDs
+    return community_assignments
+
+class TestClusterFunctionMultiSplit(unittest.TestCase):
+
+    def setUp(self):
+        self.latent = np.random.rand(100, 32)
+        self.contig_length = np.random.randint(1000, 10000, 100)
+        self.contig_names = np.array([f"S1Ck141_{i}" for i in range(50)] + [f"S2C{i}" for i in range(50, 100)])
+        self.fasta_file = "dummy.fasta"
+        self.outdir = tempfile.mkdtemp()
+        self.ncpus = 2
+        self.logger = logging.getLogger("test_logger")
+
+    @patch('clustering.run_leiden')
     @patch('subprocess.run')
-    @patch('os.makedirs')
-    @patch('os.path.exists')
-    @patch('builtins.print')
-    @patch('pandas.DataFrame.to_csv')
-    @patch('clustering.run_leiden')  # Replace 'clustering' with the actual module name
-    def test_cluster_with_multi_split(
-        self, mock_run_leiden, mock_to_csv, mock_print, mock_exists, mock_makedirs, mock_subprocess_run
-    ):
-        # Mock inputs
-        latent = np.random.rand(100, 10)
-        contig_length = np.random.randint(1000, 5000, size=100)
-        contig_names = np.array([f"S1C{i}" for i in range(50)] + [f"S2C{i}" for i in range(50, 100)])
-        fasta_file = 'test.fasta'
-        outdir = 'test_output'
-        ncpus = 4
-        logger = logging.getLogger('test_logger')
-        multi_split = True
-        separator = 'C'
-
-        mock_exists.return_value = False
-        mock_to_csv.return_value = None
-
-        def dynamic_run_leiden(latent_sample, *args, **kwargs):
-            num_elements = len(latent_sample)
-            return (
-                np.random.randint(0, 10, size=num_elements),
-                num_elements,
-                100,
-                [np.random.rand(5) for _ in range(num_elements)],
-                [np.random.randint(0, num_elements, size=5) for _ in range(num_elements)],
-                MagicMock(vcount=lambda: num_elements)
-            )
-
+    def test_cluster(self, mock_subprocess_run, mock_run_leiden):
         mock_run_leiden.side_effect = dynamic_run_leiden
-
-        # Call the function
-        from clustering import cluster  # Replace 'clustering' with your actual module name
-        cluster(latent, contig_length, contig_names, fasta_file, outdir, ncpus, logger, multi_split, separator=separator)
-
-        # Verify that run_leiden was called with appropriate subsets
-        calls = mock_run_leiden.call_args_list
-        self.assertGreater(len(calls), 0, "Expected multiple calls to run_leiden for sample-wise clustering.")
         
+        cluster(self.latent, self.contig_length, self.contig_names,
+            self.fasta_file, self.outdir, self.ncpus, self.logger, True)
 
-        # Check calls for critical operations
-        self.assertTrue(mock_makedirs.called)
-        self.assertTrue(mock_subprocess_run.called)
-        self.assertTrue(mock_to_csv.called)
+        self.assertEqual(mock_run_leiden.call_count, 3, "Expected run_leiden to be called once for the entire dataset and twice for two samples.")
+        
+        # Verify run_leiden was called for each subset
+        calls = mock_run_leiden.call_args_list
+        for i, call in enumerate(mock_run_leiden.call_args_list):
+            latent_subset = call[0][0]  # Get the `latent_norm` argument from the call
+            sample_size = latent_subset.shape[0]
+            print(f"Call {i}: sample size = {sample_size}")
+            self.assertTrue(sample_size in [100,50], "Each latent_subset should have size 50 (one for each sample).")
 
-        # Verify that cluster splitting was performed
-        split_calls = [call for call in mock_to_csv.call_args_list if 'cluster_split_allsamplewisebins' in str(call)]
-        self.assertGreater(len(split_calls), 0, "Expected 'cluster_split_allsamplewisebins' to be saved.")
-
-        # Verify sub-clustering logic
-        bin_calls = [call for call in mock_subprocess_run.call_args_list if "get_sequence_bybin" in str(call)]
-        self.assertGreater(len(bin_calls), 0, "Expected 'get_sequence_bybin' to be called for sample bins.")
-
+        self.assertTrue(os.path.exists(os.path.join(self.outdir, 'cluster_split_allsamplewisebins')))
+            
+        def tearDown(self):
+            for file in os.listdir(self.outdir):
+                file_path = os.path.join(self.outdir, file)
+                if os.path.isfile(file_path):  # Delete files
+                    os.remove(file_path)
+                elif os.path.isdir(file_path):  # Delete directories
+                    shutil.rmtree(file_path)
+            os.rmdir(self.outdir)
 
 if __name__ == '__main__':
     unittest.main()

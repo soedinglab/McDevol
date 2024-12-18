@@ -16,36 +16,27 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-# Assuming the function is in a module named 'abundance_loader'
 from dataparsing import load_abundance, compute_kmerembeddings
-
-
 
 class TestComputeKmerEmbeddings(unittest.TestCase):
     def setUp(self):
-        # Create a temporary directory
         self.test_dir = tempfile.mkdtemp()
-        
-        # Create a mock FASTA file
         self.fasta_file = os.path.join(self.test_dir, "test.fasta")
         self.create_mock_fasta()
         parent_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         weight_path = os.path.join(parent_path, "mcdevol", "genomeface_weights", "general_t2eval.m.index")
         self.assertTrue(os.path.exists(weight_path), f"Weight file not found at {weight_path}")
 
-        # Set up logger
         self.logger = logging.getLogger("test_logger")
         self.logger.setLevel(logging.INFO)
 
     def create_mock_fasta(self):
-        # Create mock DNA sequences
         sequences = [
             ("contig1", "ATCGATCGATCGATCGATCG"), # 20 bp
             ("contig2", "GCTAGCTAGCTAGCTAGCTAGCTAGA"), # 26 bp
             ("contig3", "TATATATATATATATA") # 16 bp
         ]
         
-        # Write sequences to FASTA file
         with open(self.fasta_file, "w") as handle:
             for seq_id, seq in sequences:
                 record = SeqRecord(Seq(seq), id=seq_id, description="")
@@ -64,7 +55,7 @@ class TestComputeKmerEmbeddings(unittest.TestCase):
         )
         
         # Check the number of contigs
-        self.assertEqual(numcontigs, 2)  # Only 2 contigs should meet the min_length requirement
+        self.assertEqual(numcontigs, 2)
         
         # Check contig lengths
         np.testing.assert_array_equal(contig_length, np.array([20, 26]))
@@ -213,14 +204,14 @@ class TestLoadAbundanceMetaBAT(unittest.TestCase):
         ])
         
         np.testing.assert_array_almost_equal(result, expected)
-        self.assertEqual(result.shape, (3, 3))  # 3 contigs (excluding contig3), 3 samples
+        self.assertEqual(result.shape, (3, 3))
 
     def test_load_abundance_metabat_all_contigs(self):
         result = load_abundance(
             self.temp_file.name,
             numcontigs=4,
             contig_names=self.contig_names,
-            min_length=0,  # This should include all contigs
+            min_length=0,
             logger=self.logger,
             abundformat='metabat'
         )
@@ -234,10 +225,9 @@ class TestLoadAbundanceMetaBAT(unittest.TestCase):
         ])
         
         np.testing.assert_array_almost_equal(result, expected)
-        self.assertEqual(result.shape, (4, 3))  # 4 contigs, 3 samples
+        self.assertEqual(result.shape, (4, 3))
 
     def test_load_abundance_metabat_reordering(self):
-        # Test with a different order of contig_names
         reordered_contig_names = np.array(['contig2', 'contig4', 'contig1', 'contig3'])
         
         result = load_abundance(
@@ -258,7 +248,7 @@ class TestLoadAbundanceMetaBAT(unittest.TestCase):
         ])
         
         np.testing.assert_array_almost_equal(result, expected)
-        self.assertEqual(result.shape, (4, 3))  # 3 contigs, 3 samples
+        self.assertEqual(result.shape, (4, 3))
 
 
 
