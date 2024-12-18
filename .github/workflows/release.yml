@@ -64,4 +64,7 @@ jobs:
         conda init
         conda activate mcdevol_env
         conda install pytest
-        pytest tests/test_dataparsing.py
+        for f in `ls tests/test_*.py`
+        do
+        pytest $f
+        done
