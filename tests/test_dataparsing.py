@@ -29,7 +29,10 @@ class TestComputeKmerEmbeddings(unittest.TestCase):
         # Create a mock FASTA file
         self.fasta_file = os.path.join(self.test_dir, "test.fasta")
         self.create_mock_fasta()
-        
+        parent_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        weight_path = os.path.join(parent_path, "mcdevol", "genomeface_weights", "general_t2eval.m.index")
+        self.assertTrue(os.path.exists(weight_path), f"Weight file not found at {weight_path}")
+
         # Set up logger
         self.logger = logging.getLogger("test_logger")
         self.logger.setLevel(logging.INFO)
