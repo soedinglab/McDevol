@@ -60,7 +60,7 @@ class TestBYOLModelTraining(unittest.TestCase):
         self.assertTrue(torch.all(augmented_data >= 0))
 
         rawread_counts = torch.rand(100, 20).float()
-        contigs_length = torch.rand(100).float() * 100000
+        contigs_length = torch.rand(100).float() * 1000
         fraction_pi = 0.6
         kmers = [torch.rand(100, 128).float() for _ in range(6)]
         normalized_kmers = [F.normalize(kmer, p=2, dim=-1) for kmer in kmers]
