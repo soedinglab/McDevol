@@ -320,15 +320,25 @@ class BYOLmodel(nn.Module):
         """ initialize target network """
         self.target_encoder = copy.deepcopy(self.online_encoder)
         self.target_projector = copy.deepcopy(self.online_projector)
-        for p, q in zip(self.target_encoder.parameters(), self.target_projector.parameters()):
-            p.requires_grad = False
-            q.requires_grad = False
+
+        # Freeze parameters for target_encoder
+        for param in self.target_encoder.parameters():
+            param.requires_grad = False
+
+        # Freeze parameters for target_projector
+        for param in self.target_projector.parameters():
+            param.requires_grad = False
 
     def update_moving_average(self):
         """ update target network by moving average """
 
-        target_update_moving_average(self.target_ema_updater, self.online_encoder, \
-            self.online_projector, self.target_encoder, self.target_projector)
+        target_update_moving_average(
+            self.target_ema_updater, 
+            self.online_encoder,
+            self.online_projector,
+            self.target_encoder,
+            self.target_projector
+        )
 
     def forward(self, x, xt, pair=False):
         """ forward BYOL """
