@@ -68,7 +68,7 @@ def compute_kmerembeddings(
             - contig_length (np.ndarray): Array of lengths of the contigs.
             - contig_names (np.ndarray): Array of contig names.
     """
-
+   
     # fragment sequences
     start_time = time.time()
     for i in range(n_fragments):
@@ -193,6 +193,12 @@ def load_abundance(
     try:
     # Attempt to read the file with tab separator
         pd.read_csv(abundance_file, sep='\t')
+        with open(abundance_file, 'r') as f:
+            first_line = f.readline().strip()
+            # Check if the line contains spaces instead of tabs
+            if ' ' in first_line and '\t' not in first_line:
+                raise ValueError(f"The file is space-separated, but it should be tab-separated: {abundance_file}")
+
     except Exception as e:
         raise ValueError(f"Failed to parse the file as tab-separated: {e}")
     
@@ -205,13 +211,12 @@ def load_abundance(
     s = time.time()
     if abundformat == 'std':
         num_samples =  len(abundance_header.columns) - 1
-
         arr = np.zeros((numcontigs, num_samples),dtype='float')
         logger.info(f'Loading abundance file with {numcontigs} contigs and {num_samples} samples')
         used = 0
         abundance_names = []
         reader = pd.read_csv(abundance_file, sep='\t',\
-            lineterminator='\n', engine='c', chunksize=10**6)
+            lineterminator='\n', engine='c', chunksize=10**6, encoding='utf-8')
         for chunk in tqdm.tqdm(reader):
             # TODO: this condition may not be needed as input need not have length column.
             # This should be handled well by ordered_indices selection
@@ -219,11 +224,12 @@ def load_abundance(
             abundance_names.extend(chunk['contigName'].str.strip())
             arr[used:used+len(chunk)] = chunk.iloc[:,1:len(chunk.columns)].to_numpy()
             used += len(chunk)
-    
+
         # Remove data for contigs shorter than min_length.
         # It would be present if abundance file is created from aligner2counts as it uses contigs length to save.
         # If not it should be processed here
         abundance_names = np.array(abundance_names)
+        abundance_names_set = set(abundance_names)
 
         if len(abundance_names) > len(contig_names):
             indices = np.where(np.isin(abundance_names, contig_names))[0]
@@ -233,8 +239,7 @@ def load_abundance(
         # reorder abundance as per contigs order in sequence
         abundance_names_dict = {name: index for index, name in enumerate(abundance_names)}
         # ordered_indices = [names_dict[name] for name in abundance_names if name in names_dict]
-        ordered_indices = [abundance_names_dict[name] for name in contig_names if name in abundance_names]
-
+        ordered_indices = [abundance_names_dict[name] for name in contig_names if name in abundance_names_set]
         arr = arr[ordered_indices]
         gc.collect()
         logger.info(f'Loaded abundance file in {time.time()-s:.2f} seconds')
@@ -250,7 +255,7 @@ def load_abundance(
         abundance_names = []
 
         reader = pd.read_csv(abundance_file, sep='\t', \
-            lineterminator='\n', engine='c', chunksize=10**6)
+            lineterminator='\n', engine='c', chunksize=10**6, encoding='utf-8')
         for chunk in tqdm.tqdm(reader):
             chunk_part = chunk[chunk['contigLen'] >= min_length]
             abundance_names.extend(chunk_part['contigName'].str.strip())
@@ -261,14 +266,13 @@ def load_abundance(
             arr = np.vstack(arr)
         else:
             arr = np.array([])
-
         # reorder abundance as per contigs order in sequence
-        contigs_names_filtered = [name for name in contig_names if name in abundance_names]
-
+        abundance_names_set = set(abundance_names)
+        contigs_names_filtered = [name for name in contig_names if name in abundance_names_set]
         abundance_names_dict = {name: index for index, name in enumerate(abundance_names)}
-        ordered_indices = [abundance_names_dict[name] for name in contigs_names_filtered if name in abundance_names]
- 
+        ordered_indices = [abundance_names_dict[name] for name in contigs_names_filtered if name in abundance_names_set]
         arr = arr[ordered_indices]
+
         gc.collect()
         logger.info(f'Loaded abundance file in {time.time()-s:.2f} seconds')
         return arr
@@ -288,7 +292,7 @@ def process_sample(args: Tuple[str, str, str]) -> None:
     """
     sam, inputdir, outdir = args
     sample_id = sam.split('.')[0]
-    subprocess.run(f"cat {os.path.join(inputdir, sam)} | {util_path}/aligner2counts {outdir} {sample_id}", shell=True)
+    subprocess.run(f"cat {os.path.join(inputdir, sam)} | {util_path}/aligner2counts {outdir} {sample_id} --strobealign", shell=True)
 
 def generate_abundance(inputdir: str, ncores: int, outdir: str) -> str:
     """
@@ -304,6 +308,7 @@ def generate_abundance(inputdir: str, ncores: int, outdir: str) -> str:
         str: The path to the generated `abundance.tsv` file.
     """
     samfiles: List[str] = [f for f in os.listdir(inputdir) if f.endswith('.sam')]
+
     ncpu: int = min(ncores, len(samfiles))
     args: List[Tuple[str, str, str]] = [(sam, inputdir, outdir) for sam in samfiles]
     with Pool(ncpu) as pool:
@@ -320,9 +325,8 @@ def generate_abundance(inputdir: str, ncores: int, outdir: str) -> str:
     # Concatenate all DataFrames into a single DataFrame
     coverage_data: pd.DataFrame = pd.concat(coverage_data_list)
     coverage_data = coverage_data.pivot_table(index = 'contigName', columns = 'sampleID', values = 'coverage').sort_index(axis=1)
-
     abundance_file: str = os.path.join(outdir, "abundance.tsv")
-    coverage_data.to_csv(abundance_file, sep='\t', index=False)
+    coverage_data.to_csv(abundance_file, sep='\t')
 
     return abundance_file
 

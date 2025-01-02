@@ -440,7 +440,7 @@ class BYOLmodel(nn.Module):
         contigs_length: torch.Tensor,
         fraction_pi: float,
         kmers: list
-        ):
+    ):
         """Apply data augmentations for training."""
         
         augmented_online = self.data_augment(rawread_counts, contigs_length, fraction_pi)

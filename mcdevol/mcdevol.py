@@ -19,6 +19,7 @@ BOLD = '\033[1m'
 END = '\033[0m'
 RED = '\033[91m'
 GREEN = '\033[92m'
+BLUE = '\033[94m'
 
 def check_inputs(parser, args):
 
@@ -38,7 +39,6 @@ def check_inputs(parser, args):
 		print("Conflict arguments! Both abundance and input directory for sam files are given. Provide only one of them")
 		sys.exit(1)
 	if args.inputdir is not None:
-		print(args.inputdir, 'args input dir')
 		if not os.path.isdir(args.inputdir):
 			print(f"Error: The directory {args.inputdir} does not exist.")
 			sys.exit(1)
@@ -63,7 +63,7 @@ def check_inputs(parser, args):
 		args.contigs = gzip.open(args.contigs,'rb')
 	  
 	if args.outdir is None:
-		args.outdir = os.path.join(os.getcwd() +  'mcdevol/')
+		args.outdir = os.path.join(os.getcwd(), 'mcdevol_results/')
 	else:
 		args.outdir = os.path.join(args.outdir + '/')
 
@@ -134,7 +134,6 @@ def main():
 		abundance = ps.generate_abundance(args.inputdir, ncpus, outdir)
 	fasta_file = args.contigs
 
-
 	numcontigs, contig_length, contig_names = ps.compute_kmerembeddings(outdir, fasta_file, min_length, logger, n_fragments=nfragments)
 	logger.info(f'Kmer information is processed')
 	abundance_matrix = ps.load_abundance(abundance, numcontigs, contig_names, min_length, logger, abundance_format)
@@ -142,7 +141,7 @@ def main():
 
 	# byol training
 	logger.info(f'Running BYOL entering')
-	latent, contig_length, contig_names = byol_model.run(abundance_matrix, outdir, contig_length, contig_names, multi_split, ncpus)
+	latent, contig_length, contig_names = byol_model.run(abundance_matrix, outdir, contig_length, contig_names, multi_split, ncpus) # type: ignore
 
 	# leiden clustering
 	logger.info(f'Running Leiden community detection')
@@ -150,6 +149,6 @@ def main():
 
 	# assembly
 	logger.info(f'McDevol has generated metagenomic bins')
-
+	print(f'{BOLD}{BLUE}McDevol binning{END}{END} is completed!')
 if __name__ == "__main__":
 	main()
