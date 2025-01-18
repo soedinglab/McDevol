@@ -86,7 +86,12 @@ int main(int argc, char *argv[]) {
         std::string outdir = argv[5];
 
         std::fstream binassignment;
-        binassignment.open(tmp_dir + '/' + bin_ids);
+        
+        if (tmp_dir.back() != '/') {
+            tmp_dir += '/';
+        }
+
+        binassignment.open(tmp_dir + bin_ids);
 
         if (!binassignment.is_open()) {
             std::cerr << "Error: Unable to open bin assignment file!" << "\n";
