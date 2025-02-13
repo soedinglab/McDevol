@@ -50,5 +50,5 @@ For multi-sample binning run
     python mcdevol.py -i <samfilesdir> -c <contigseq.fasta> -o <outputdir> --abundformat metabat -n 24 --multi-split
 
 
-# Recommendation
+# Recommended
 McDevol is most powerful when input contigs have high read coverage profiles.
