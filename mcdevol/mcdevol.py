@@ -19,7 +19,6 @@ BOLD = '\033[1m'
 END = '\033[0m'
 RED = '\033[91m'
 GREEN = '\033[92m'
-BLUE = '\033[94m'
 
 def check_inputs(parser, args):
 
@@ -80,6 +79,10 @@ def check_inputs(parser, args):
 		print(f"Invalid number of fragments: {args.nfragments}. It should be a positive integer")
 		sys.exit(1)
 
+	if args.readlength <=0 or not isinstance(args.readlength, int):
+		print(f"Invalid read length: {args.readlength}. It should be a positive integer e.g., 250 for paired end")
+		sys.exit(1)
+
 def main():
 	""" McDevol accurately reconstructs genomic bins from metagenomic samples using contig abundance and k-mer embedding """
 	parser = argparse.ArgumentParser(prog='mcdevol', description="McDevol: An accurate metagenome binning of contigs based on decovolution of abundance and k-mer embedding\n")
@@ -101,6 +104,10 @@ def main():
 
 	# fragmentation argument
 	parser.add_argument("-f", "--nfragments", type=int, help="number of augumented fragments to generate", default=6)
+	parser.add_argument("-r", "--readlength", type=int, help="average read length of fastq files", default=250)
+
+	# model training argument
+	parser.add_argument("-e", "--learningrate", type=float, help="learning rate", default=0.1)
 
 	# clustering option
 	parser.add_argument("--multi_split", help="split clusters based on sample id, separator (default='C')", action="store_true")
@@ -108,11 +115,14 @@ def main():
 	args = parser.parse_args()
 
 	check_inputs(parser, args)
+
 	min_length: int = args.minlength
 	abundance_format: str = args.abundformat
 	nfragments: int = args.nfragments
 	multi_split: bool = args.multi_split
 	ncpus: int = args.ncores
+	readlength: int = args.readlength
+	learningrate: int = args.learningrate
 
 	# logging
 	logging.basicConfig(format='%(asctime)s - %(message)s', \
@@ -141,14 +151,28 @@ def main():
 
 	# byol training
 	logger.info(f'Running BYOL entering')
-	latent, contig_length, contig_names = byol_model.run(abundance_matrix, outdir, contig_length, contig_names, multi_split, ncpus) # type: ignore
+	latent, contig_length, contig_names = byol_model.run(abundance_matrix, outdir, contig_length, contig_names, multi_split, ncpus, readlength, learningrate, nfragments) # type: ignore
 
 	# leiden clustering
 	logger.info(f'Running Leiden community detection')
+	
 	cluster(latent, contig_length, contig_names, fasta_file, outdir, ncpus, logger, multi_split)
+	# learning_rate = [3e-2, 1e-1]
+	# for lr in learning_rate:
+	# 	logger.info(f'Running BYOL entering for {lr}')
+	# 	latent, contig_length, contig_names = byol_model.run(abundance_matrix, outdir, contig_length, contig_names, multi_split, ncpus, readlength, lr) # type: ignore
+
+	# 	# leiden clustering
+	# 	logger.info(f'Running Leiden community detection for {lr}')
+	# 	cluster_outdir = os.path.join(outdir,'lrate_'+str(lr)+'/')
+	# 	try:
+	# 		os.makedirs(cluster_outdir, exist_ok=True)
+	# 	except FileExistsError as e:
+	# 		print(f'Already {cluster_outdir} exist. {str(e)}')
+	# 	cluster(latent, contig_length, contig_names, fasta_file, cluster_outdir, ncpus, logger, multi_split)
 
 	# assembly
 	logger.info(f'McDevol has generated metagenomic bins')
-	print(f'{BOLD}{BLUE}McDevol binning{END}{END} is completed!')
+	print(f'{BOLD}{GREEN}McDevol binning{END}{END} is completed!')
 if __name__ == "__main__":
 	main()

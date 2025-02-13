@@ -1,5 +1,5 @@
 # McDevol
-A metagenome binning tool based on semi-contrastive learning method using the framework of BYOL (Bootstrap Your Own Latent) model. It only requires positive augmentated pairs for contrastive learning. As input, it integrates k-mer sequence embedding from GenomeFace and sampled coverage profiles using binomial sampling of contigs of augmented pairs for training. The embedding space obtained after training is used on Leiden algorithm to obtain metagenomic bins.
+A new self-supervised metagenome binning tool based on semi-contrastive learning method using the framework of BYOL (Bootstrap Your Own Latent) model. It only requires positive augmentated pairs for contrastive learning and at least 2x faster than COMEBin. It integrates k-mer sequence embedding vectors from GenomeFace composition model and sampled read coverage profiles using multinomial sampling of contigs to learn embedding space. It applies Leiden community detection algorithm to cluster contigs in the embedding space and obtain metagenomic bins.
 
 ![Mcdevol_byol_model](https://github.com/user-attachments/assets/28ac2eb9-6545-4824-aa07-6d98b33d9ac0)
 
@@ -9,7 +9,7 @@ A metagenome binning tool based on semi-contrastive learning method using the fr
     export PATH=${PATH}/$(pwd)/mcdevol
     python mcdevol.py --help
 
-Require glibc2.25. At the moment, McDevol scripts are tested only on Linux system. On cluster node, try creating conda environment using `CONDA_OVERRIDE_GLIBC=2.17 CONDA_OVERRIDE_CUDA=10.2 conda env create --file=environment.yml` if the default command doesn't work.
+McDevol requires glibc2.25. Currently, McDevol was tested only on Linux system. On cluster node, if the default command doesn't work, try creating conda environment using `CONDA_OVERRIDE_GLIBC=2.17 CONDA_OVERRIDE_CUDA=10.2 conda env create --file=environment.yml`.
 
 # Usage
 ```
@@ -43,8 +43,12 @@ optional arguments:
 # Example
     python mcdevol.py -i <samfilesdir> -c <contigseq.fasta> -o <outputdir> --abundformat metabat -n 24
 
-`-i` and `-a` are mutually exclusive input.
+`-i` and `-a` options are mutually exclusive.
 
 For multi-sample binning run
 
     python mcdevol.py -i <samfilesdir> -c <contigseq.fasta> -o <outputdir> --abundformat metabat -n 24 --multi-split
+
+
+# Recommendation
+McDevol is most powerful when input contigs have high read coverage profiles.

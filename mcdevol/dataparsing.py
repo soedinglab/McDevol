@@ -28,6 +28,7 @@ import tensorflow as tf
 from tensorflow.keras import layers
 from tensorflow.keras.layers import Input, Lambda
 from tensorflow.keras.models import Model
+import tensorflow.keras.backend as K
 
 # Limit TensorFlow to a fraction of the total GPU memory
 gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -38,11 +39,6 @@ if gpus:
             tf.config.experimental.set_memory_growth(gpu, True)
     except RuntimeError as e:
         print(e)
-
-gpu_devices = tf.config.experimental.list_physical_devices('GPU')
-if gpu_devices:
-    for device in gpu_devices:
-        tf.config.experimental.set_memory_growth(device, True)
 
 def compute_kmerembeddings(
     outdir: str,
@@ -79,9 +75,19 @@ def compute_kmerembeddings(
         for record in SeqIO.parse(fasta_file, "fasta"):
             seq_length = len(record.seq)
             if seq_length >= min_length:
-                start_pos = random.randint(0, seq_length - min_length)
-                length = min_length + random.randint(0, seq_length - start_pos - min_length)
-                end_pos = start_pos + length
+                min_fragment_length = max(min_length, int(0.3 * seq_length))
+                max_fragment_length = int(0.9 * seq_length)
+                max_fragment_length = min(max_fragment_length, seq_length)
+                if max_fragment_length <= min_fragment_length:
+                    start_pos = 0
+                    end_pos = seq_length
+                else:
+                    fragment_length = random.randint(min_fragment_length, max_fragment_length)
+                    start_pos = random.randint(0, seq_length - fragment_length)
+                    end_pos = start_pos + fragment_length
+                # start_pos = random.randint(0, seq_length - min_length)
+                # length = min_length + random.randint(0, seq_length - start_pos - min_length)
+                # end_pos = start_pos + length
                 fragment = record.seq[start_pos:end_pos]
                 fragment_id = f"{record.id} {start_pos}:{end_pos}"
                 fragments.append(SeqRecord(Seq(fragment), id=fragment_id, description=""))
@@ -135,6 +141,7 @@ def compute_kmerembeddings(
         if counter == 0:
             contig_length = np.asarray(aaq[0])
             contig_length = contig_length[contig_length >= min_length]
+        # the number of contigs returned should be same from kmer_counter
         assert len(contig_length) == len(contig_names)
         numcontigs = len(contig_names)
         inpts = [np.reshape(aaq[i], (-1, size)).astype(np.float32) \
@@ -160,8 +167,11 @@ def compute_kmerembeddings(
         if counter == 0:
             np.save(os.path.join(outdir, f'kmer_embedding{file_counter[counter]}.npy'), y20_cat)
         else:
-            np.save(os.path.join(outdir, f'kmer_embedding_augment{file_counter[counter]}.npy'), y20_cat)    
+            np.save(os.path.join(outdir, f'kmer_embedding_augment{file_counter[counter]}.npy'), y20_cat)
+            np.save(os.path.join(outdir, f'augmented_contiglength{file_counter[counter]}.npy'), np.asarray(aaq[0])) 
         tf.keras.backend.clear_session()
+
+        K.clear_session()
         gc.collect()
     
     logger.info(f'Embedding is complete in {time.time()-s:.2f} seconds')
